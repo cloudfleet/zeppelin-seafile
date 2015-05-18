@@ -32,7 +32,6 @@ chown -R seafile.nogroup /opt/seafile/
 mysql -e "CREATE DATABASE IF NOT EXISTS \`ccnet-db\` character set = 'utf8';"
 mysql -e "CREATE DATABASE IF NOT EXISTS \`seafile-db\` character set = 'utf8';"
 mysql -e "CREATE DATABASE IF NOT EXISTS \`seahub-db\` character set = 'utf8';"
-mysql -e "create user 'seafile'@'localhost' identified by '$SQLSEAFILEPW';"
 mysql -e "GRANT ALL PRIVILEGES ON \`ccnet-db\`.* to \`seafile\`;"
 mysql -e "GRANT ALL PRIVILEGES ON \`seafile-db\`.* to \`seafile\`;"
 mysql -e "GRANT ALL PRIVILEGES ON \`seahub-db\`.* to \`seafile\`;"
@@ -55,8 +54,6 @@ SEAFILE_ADMIN_PW=${ADMIN_PASSWORD}
 # -------------------------------------------
 # Vars - Don't touch these unless you really know what you are doing!
 # -------------------------------------------
-SCRIPT=$(readlink -f "$0")
-#INSTALLPATH=$(dirname "${SCRIPT}")
 INSTALLPATH=/opt/seafile/haiwen/seafile-server-${SEAFILE_VERSION}/
 TOPDIR=$(dirname "${INSTALLPATH}")
 DEFAULT_CCNET_CONF_DIR=${TOPDIR}/ccnet
@@ -71,8 +68,7 @@ LIBRARY_TEMPLATE_DIR=${SEAFILE_DATA_DIR}/library-template
 SRC_DOCS_DIR=${INSTALLPATH}/seafile/docs/
 SEAFILE_SERVER_PORT=12001
 FILESERVER_PORT=8082
-SEAFILESQLPW=$(grep password /opt/seafile/.my.cnf | awk -F'=' {'print $2'})
-export SEAFILE_LD_LIBRARY_PATH=${INSTALLPATH}/seafile/lib/:${INSTALLPATH}/seafile/lib64:${LD_LIBRARY_PATH}
+SEAFILESQLPW=$SQLSEAFILEPW
 DEST_SETTINGS_PY=${TOPDIR}/seahub_settings.py
 SEAHUB_SECRET_KEYGEN=${INSTALLPATH}/seahub/tools/secret_key_generator.py
 key=$(python "${SEAHUB_SECRET_KEYGEN}")
@@ -84,6 +80,8 @@ DEST_AVATAR_DIR=${TOPDIR}/seahub-data/avatars
 SEAFILE_SERVER_SYMLINK=${TOPDIR}/seafile-server-latest
 
 
+
+export SEAFILE_LD_LIBRARY_PATH=${INSTALLPATH}/seafile/lib/:${INSTALLPATH}/seafile/lib64:${LD_LIBRARY_PATH}
 # -------------------------------------------
 # Create ccnet conf
 # -------------------------------------------
@@ -254,97 +252,3 @@ ${TOPDIR}/seafile-server-${SEAFILE_VERSION}/seafile.sh stop
 # Restore original check_init_admin.py
 # -------------------------------------------
 mv ${INSTALLPATH}/check_init_admin.py.backup ${INSTALLPATH}/check_init_admin.py
-
-
-
-
-
-
-# -------------------------------------------
-# Final report
-# -------------------------------------------
-cat > ${seafile_dir}/aio_seafile-server.log<<EOF
-
-  Your Seafile server is installed
-  -----------------------------------------------------------------
-
-  Server Name:         ${SERVER_NAME}
-  Server Address:      https://${IP_OR_DOMAIN}
-
-  Seafile Admin:       ${SEAFILE_ADMIN}
-  Admin Password:      ${SEAFILE_ADMIN_PW}
-
-  Seafile Data Dir:    ${SEAFILE_DATA_DIR}
-
-  Seafile DB Credentials:  Check /opt/seafile/.my.cnf
-  Root DB Credentials:     Check /root/.my.cnf
-
-  This report is also saved to ${seafile_dir}/aio_seafile-server.log
-
-
-
-  Next you should manually complete the following steps
-  -----------------------------------------------------------------
-
-  1) seahub_settings.py:  Change IP within FILE_SERVER_ROOT variable to DNS
-
-  2) ccnet.conf:          Change IP within SERVICE_URL variable to DNS
-
-  3) Restart server with: service seafile-server restart
-
-  4) If this server is behind a firewall, you need to ensure that
-     tcp port 443 for the NGINX reverse proxy is open. Optionally
-     you may also open tcp port 80 which redirects all unencrypted
-     http traffic to the encrypted https port.
-
-  5) Seahub tries to send emails via the local server. Install and
-     configure Postfix for this to work.
-
-
-
-
-  Optional steps
-  -----------------------------------------------------------------
-
-  1) Check seahub_settings.py and customize it to fit your needs. Consult
-     http://manual.seafile.com/config/seahub_settings_py.html for possible switches.
-
-  2) Setup NGINX with official SSL certificate.
-
-  3) Secure server with iptables based firewall. For instance: UFW or shorewall
-
-  4) Harden system with port knocking, fail2ban, etc.
-
-  5) Enable unattended installation of security updates. Check
-     https://wiki.debian.org/UnattendedUpgrades for details.
-
-  6) Implement a backup routine for your Seafile server.
-
-  7) Update NGINX worker processes to reflect the number of CPU cores.
-
-
-
-
-  Seafile support options
-  -----------------------------------------------------------------
-
-  For free community support visit:   https://forum.seafile-server.org
-  For paid commercial support visit:  https://seafile.com.de
-
-
-
-
-  About
-  -----------------------------------------------------------------
-
-  Please contact alexander.jackson@seafile.com.de
-  for bugs or suggestions about this installer. Thank you!
-
-EOF
-
-chmod 600 ${seafile_dir}/aio_seafile-server.log
-chown -R seafile.nogroup ${seafile_dir}/aio_seafile-server.log
-
-clear
-
-cat ${seafile_dir}/aio_seafile-server.log

@@ -8,6 +8,9 @@ deb-src http://nginx.org/packages/mainline/debian/ jessie nginx
 EOF
 wget -O - http://nginx.org/packages/keys/nginx_signing.key | apt-key add -
 
+apt-get update -y
+apt-get install nginx -y
+
 rm /etc/nginx/conf.d/*
 
 cat > /etc/nginx/conf.d/seafile.conf <<'EOF'
@@ -68,7 +71,7 @@ EOF
 # -------------------------------------------
 # Additional requirements
 # -------------------------------------------
-aptitude install sudo python-setuptools python-simplejson python-imaging python-mysqldb \
+apt-get install sudo python-setuptools python-simplejson python-imaging python-mysqldb \
 openjdk-7-jre memcached python-memcache pwgen curl -y
 
 

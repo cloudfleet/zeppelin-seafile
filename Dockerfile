@@ -1,8 +1,11 @@
 FROM debian:jessie
 
-ADD start.sh
-ADD install.sh
+RUN apt-get update -y
+RUN apt-get install wget -y
 
-RUN installs.sh
+ADD install.sh ./install.sh
+RUN ./install.sh
 
-CMD start.sh
+
+ADD start.sh ./start.sh
+CMD ./start.sh
