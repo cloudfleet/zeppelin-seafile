@@ -1,0 +1,14 @@
+seafilemysql:
+  image: library/mysql
+  environment:
+    MYSQL_ROOT_PASSWORD: supersecretmysqlpassword
+  volumes:
+    - "/var/cloudfleet/data/seafilemysql:/var/lib/mysql"
+seafile:
+  image: cloudfleet/zeppelin-seafile
+  links:
+    - seafilemysql:db
+  environment:
+    DB_ROOT_PASSWORD: supersecretmysqlpassword
+    DB_PASSWORD: seafile_password
+    SERVER_DOMAIN: files.example.com

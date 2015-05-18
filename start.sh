@@ -7,11 +7,12 @@
 # SERVER_DOMAIN
 #
 
-
+SEAFILE_VERSION=$(basename /opt/seafile/haiwen/seafile-server-* | awk -F'-' ' { print $3  }')
 SQLROOTPW=${DB_ROOT_PASSWORD}
 
 cat > /root/.my.cnf <<EOF
 [client]
+host=db
 user=root
 password=$SQLROOTPW
 EOF
@@ -22,6 +23,7 @@ SQLSEAFILEPW=${DB_PASSWORD}
 
 cat > /opt/seafile/.my.cnf <<EOF
 [client]
+host=db
 user=seafile
 password=$SQLSEAFILEPW
 EOF
@@ -29,24 +31,23 @@ EOF
 chmod 600 /opt/seafile/.my.cnf
 chown -R seafile.nogroup /opt/seafile/
 
+echo "Waiting for database ..."
+sleep 3
+
+echo "Setting up database if necessary ..."
 mysql -e "CREATE DATABASE IF NOT EXISTS \`ccnet-db\` character set = 'utf8';"
 mysql -e "CREATE DATABASE IF NOT EXISTS \`seafile-db\` character set = 'utf8';"
 mysql -e "CREATE DATABASE IF NOT EXISTS \`seahub-db\` character set = 'utf8';"
-mysql -e "GRANT ALL PRIVILEGES ON \`ccnet-db\`.* to \`seafile\`;"
+mysql -e "GRANT ALL PRIVILEGES ON \`ccnet-db\`.* to \`seafile\` identified by '$SQLSEAFILEPW';"
 mysql -e "GRANT ALL PRIVILEGES ON \`seafile-db\`.* to \`seafile\`;"
 mysql -e "GRANT ALL PRIVILEGES ON \`seahub-db\`.* to \`seafile\`;"
 mysql seahub-db < /opt/seafile/haiwen/seafile-server-${SEAFILE_VERSION}/seahub/sql/mysql.sql
 
 
-# -------------------------------------------
-# Go to /opt/seafile/haiwen/seafile-server-${SEAFILE_VERSION}
-# -------------------------------------------
+echo "Changing to /opt/seafile/haiwen/seafile-server-${SEAFILE_VERSION}/"
 cd /opt/seafile/haiwen/seafile-server-${SEAFILE_VERSION}/
 
-
-# -------------------------------------------
-# Define Seafile admin credentials.
-# -------------------------------------------
+echo "Setting up variables ..."
 SEAFILE_ADMIN=admin@seafile.local
 SEAFILE_ADMIN_PW=${ADMIN_PASSWORD}
 
@@ -82,9 +83,8 @@ SEAFILE_SERVER_SYMLINK=${TOPDIR}/seafile-server-latest
 
 
 export SEAFILE_LD_LIBRARY_PATH=${INSTALLPATH}/seafile/lib/:${INSTALLPATH}/seafile/lib64:${LD_LIBRARY_PATH}
-# -------------------------------------------
-# Create ccnet conf
-# -------------------------------------------
+
+echo "Creating ccnet conf ..."
 LD_LIBRARY_PATH=$SEAFILE_LD_LIBRARY_PATH "${CCNET_INIT}" -c "${DEFAULT_CCNET_CONF_DIR}" \
   --name "${SERVER_NAME}" --port "${SERVER_PORT}" --host "${IP_OR_DOMAIN}"
 
@@ -92,16 +92,13 @@ LD_LIBRARY_PATH=$SEAFILE_LD_LIBRARY_PATH "${CCNET_INIT}" -c "${DEFAULT_CCNET_CON
 eval "sed -i 's/^SERVICE_URL.*/SERVICE_URL = https:\/\/${IP_OR_DOMAIN}/' ${DEFAULT_CCNET_CONF_DIR}/ccnet.conf"
 
 
-# -------------------------------------------
-# Create seafile conf
-# -------------------------------------------
+echo "Creating seafile conf ..."
 LD_LIBRARY_PATH=$SEAFILE_LD_LIBRARY_PATH ${SEAF_SERVER_INIT} --seafile-dir "${SEAFILE_DATA_DIR}" \
   --port ${SEAFILE_SERVER_PORT} --fileserver-port ${FILESERVER_PORT}
 
 
-# -------------------------------------------
-# Write seafile.ini
-# -------------------------------------------
+echo "Creating seafile.ini ..."
+
 echo "${SEAFILE_DATA_DIR}" > "${DEFAULT_CCNET_CONF_DIR}/seafile.ini"
 
 
@@ -119,13 +116,13 @@ EOF
 
 
 # -------------------------------------------
-# generate seahub_settings.py
+echo "generate seahub_settings.py"
 # -------------------------------------------
 echo "SECRET_KEY = \"${key}\"" > "${DEST_SETTINGS_PY}"
 
 
 # -------------------------------------------
-# prepare avatar directory
+echo "prepare avatar directory"
 # -------------------------------------------
 mkdir -p "${TOPDIR}/seahub-data"
 mv "${ORIG_AVATAR_DIR}" "${DEST_AVATAR_DIR}"
@@ -133,18 +130,18 @@ ln -s ../../../seahub-data/avatars ${MEDIA_DIR}
 
 
 # -------------------------------------------
-# create logs directory
+echo "create logs directory"
 # -------------------------------------------
 mkdir -p "${TOPDIR}/logs"
 
 
 # -------------------------------------------
-# Create symlink for current server version
+echo "Create symlink for current server version"
 # -------------------------------------------
 ln -s $(basename ${INSTALLPATH}) ${SEAFILE_SERVER_SYMLINK}
 
 
-# Fix permissions
+echo "Fix permissions"
 chmod 0600 "$DEST_SETTINGS_PY"
 chmod 0700 "$DEFAULT_CCNET_CONF_DIR"
 chmod 0700 "$SEAFILE_DATA_DIR"
@@ -152,20 +149,20 @@ chmod 0700 "$DEFAULT_CONF_DIR"
 
 
 # -------------------------------------------
-# copy user manuals to library template
+echo "copy user manuals to library template"
 # -------------------------------------------
 mkdir -p ${LIBRARY_TEMPLATE_DIR}
 cp -f ${SRC_DOCS_DIR}/*.doc ${LIBRARY_TEMPLATE_DIR}
 
 
 # -------------------------------------------
-# Configuring ccnet.conf
+echo "Configuring ccnet.conf"
 # -------------------------------------------
 cat >> ${DEFAULT_CCNET_CONF_DIR}/ccnet.conf <<EOF
 
 [Database]
 ENGINE = mysql
-HOST = 127.0.0.1
+HOST = db
 PORT = 3306
 USER = seafile
 PASSWD = $SEAFILESQLPW
@@ -175,7 +172,7 @@ EOF
 
 
 # -------------------------------------------
-# Configuring seahub_settings.py
+echo "Configuring seahub_settings.py"
 # -------------------------------------------
 cat >> ${DEST_SETTINGS_PY} <<EOF
 
@@ -227,20 +224,20 @@ EOF
 
 
 # -------------------------------------------
-# Backup check_init_admin.py befor applying changes
+echo "Backup check_init_admin.py befor applying changes"
 # -------------------------------------------
 cp ${INSTALLPATH}/check_init_admin.py ${INSTALLPATH}/check_init_admin.py.backup
 
 
 # -------------------------------------------
-# Set admin credentials in check_init_admin.py
+echo "Set admin credentials in check_init_admin.py"
 # -------------------------------------------
 eval "sed -i 's/= ask_admin_email()/= \"${SEAFILE_ADMIN}\"/' ${INSTALLPATH}/check_init_admin.py"
 eval "sed -i 's/= ask_admin_password()/= \"${SEAFILE_ADMIN_PW}\"/' ${INSTALLPATH}/check_init_admin.py"
 
 
 # -------------------------------------------
-# Start and stop Seafile eco system. This generates the initial admin user.
+echo "Start and stop Seafile eco system. This generates the initial admin user."
 # -------------------------------------------
 ${TOPDIR}/seafile-server-${SEAFILE_VERSION}/seafile.sh start
 ${TOPDIR}/seafile-server-${SEAFILE_VERSION}/seahub.sh start
@@ -249,6 +246,6 @@ ${TOPDIR}/seafile-server-${SEAFILE_VERSION}/seafile.sh stop
 
 
 # -------------------------------------------
-# Restore original check_init_admin.py
+echo "Restore original check_init_admin.py"
 # -------------------------------------------
 mv ${INSTALLPATH}/check_init_admin.py.backup ${INSTALLPATH}/check_init_admin.py
