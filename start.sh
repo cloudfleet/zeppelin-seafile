@@ -10,6 +10,19 @@
 SEAFILE_VERSION=$(basename /opt/seafile/haiwen/seafile-server-* | awk -F'-' ' { print $3  }')
 SQLROOTPW=${DB_ROOT_PASSWORD}
 
+
+
+if [ "$HTTPS" = "True" ]; then
+  echo "Turning https on for fastcgi"
+  sed -i s/__HTTPS__/on/g /etc/nginx/conf.d/seafile.conf
+  sed -i s/__HTTP_SCHEME__/https/g /etc/nginx/conf.d/seafile.conf
+else
+  echo "Turning https off for fastcgi"
+  sed -i s/__HTTPS__/off/g /etc/nginx/conf.d/seafile.conf
+  sed -i s/__HTTP_SCHEME__/http/g /etc/nginx/conf.d/seafile.conf
+fi
+
+
 cat > /root/.my.cnf <<EOF
 [client]
 host=db
@@ -87,6 +100,18 @@ export SEAFILE_LD_LIBRARY_PATH=${INSTALLPATH}/seafile/lib/:${INSTALLPATH}/seafil
 echo "Creating ccnet conf ..."
 LD_LIBRARY_PATH=$SEAFILE_LD_LIBRARY_PATH "${CCNET_INIT}" -c "${DEFAULT_CCNET_CONF_DIR}" \
   --name "${SERVER_NAME}" --port "${SERVER_PORT}" --host "${IP_OR_DOMAIN}"
+
+if [ -n "${LDAP_HOST}" ]; then
+
+echo "configuring ldap"
+cat >> ${DEFAULT_CCNET_CONF_DIR}/ccnet.conf <<EOF
+[LDAP]
+HOST = ${LDAP_HOST}
+BASE = ${LDAP_SEARCH_BASE}
+LOGIN_ATTR = ${LDAP_USER_ATTRIBUTE}
+EOF
+
+fi
 
 # Fix service url
 eval "sed -i 's/^SERVICE_URL.*/SERVICE_URL = https:\/\/${IP_OR_DOMAIN}/' ${DEFAULT_CCNET_CONF_DIR}/ccnet.conf"
