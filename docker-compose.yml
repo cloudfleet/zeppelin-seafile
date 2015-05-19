@@ -3,6 +3,7 @@ seafilemysql:
   environment:
     MYSQL_ROOT_PASSWORD: supersecretmysqlpassword
 seafile:
+#  build: .
   image: cloudfleet/zeppelin-seafile
   links:
     - seafilemysql:db
@@ -10,3 +11,7 @@ seafile:
     DB_ROOT_PASSWORD: supersecretmysqlpassword
     DB_PASSWORD: seafile_password
     SERVER_DOMAIN: files.example.com
+    ADMIN_PASSWORD: test123
+
+  ports:
+    - "8080:80"

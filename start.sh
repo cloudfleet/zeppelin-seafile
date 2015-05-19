@@ -235,6 +235,7 @@ echo "Set admin credentials in check_init_admin.py"
 eval "sed -i 's/= ask_admin_email()/= \"${SEAFILE_ADMIN}\"/' ${INSTALLPATH}/check_init_admin.py"
 eval "sed -i 's/= ask_admin_password()/= \"${SEAFILE_ADMIN_PW}\"/' ${INSTALLPATH}/check_init_admin.py"
 
+echo "${SEAFILE_ADMIN} - ${SEAFILE_ADMIN_PW}"
 
 # -------------------------------------------
 echo "Start and stop Seafile eco system. This generates the initial admin user."
@@ -251,6 +252,8 @@ echo "Restore original check_init_admin.py"
 mv ${INSTALLPATH}/check_init_admin.py.backup ${INSTALLPATH}/check_init_admin.py
 
 echo "Starting seahub"
+${TOPDIR}/seafile-server-${SEAFILE_VERSION}/seafile.sh start
+${TOPDIR}/seafile-server-${SEAFILE_VERSION}/seahub.sh start-fastcgi 8000
+service nginx start
 
-SEAF_CONTROLLER="${INSTALLPATH}/seafile/bin/seafile-controller"
-LD_LIBRARY_PATH=$SEAFILE_LD_LIBRARY_PATH ${SEAF_CONTROLLER} -c "${DEFAULT_CCNET_CONF_DIR}" -d "${SEAFILE_DATA_DIR}"
+tail -f `ls ${TOPDIR}/logs/*.log` `ls /var/log/nginx/*.log`
