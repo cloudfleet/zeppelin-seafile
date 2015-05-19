@@ -33,3 +33,6 @@ RUN ./install.sh
 
 ADD start.sh ./start.sh
 CMD ./start.sh
+
+VOLUME /opt/seafile/haiwen/seafile-data
+VOLUME /opt/seafile/haiwen/seahub-data

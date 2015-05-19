@@ -249,3 +249,8 @@ ${TOPDIR}/seafile-server-${SEAFILE_VERSION}/seafile.sh stop
 echo "Restore original check_init_admin.py"
 # -------------------------------------------
 mv ${INSTALLPATH}/check_init_admin.py.backup ${INSTALLPATH}/check_init_admin.py
+
+echo "Starting seahub"
+
+SEAF_CONTROLLER="${INSTALLPATH}/seafile/bin/seafile-controller"
+LD_LIBRARY_PATH=$SEAFILE_LD_LIBRARY_PATH ${SEAF_CONTROLLER} -c "${DEFAULT_CCNET_CONF_DIR}" -d "${SEAFILE_DATA_DIR}"
